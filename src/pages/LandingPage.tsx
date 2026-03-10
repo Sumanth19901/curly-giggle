@@ -64,10 +64,10 @@ const LandingPage = () => {
             <span className="font-bold text-lg text-foreground">ACIA</span>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
               Dashboard
             </Button>
-            <Button variant="accent" size="sm" onClick={() => navigate("/dashboard")}>
+            <Button variant="accent" size="sm" onClick={() => navigate("/auth")}>
               Get Started
             </Button>
           </div>
@@ -96,10 +96,10 @@ const LandingPage = () => {
               Evaluate your profile, detect skill gaps, predict placement probability, and get personalized career roadmaps — all powered by AI.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button variant="hero" size="xl" onClick={() => navigate("/dashboard")}>
+              <Button variant="hero" size="xl" onClick={() => navigate("/auth")}>
                 Launch Dashboard
               </Button>
-              <Button variant="outline-hero" size="xl" onClick={() => navigate("/dashboard")}>
+              <Button variant="outline-hero" size="xl" onClick={() => navigate("/auth")}>
                 Upload Resume
               </Button>
             </div>
@@ -181,7 +181,7 @@ const LandingPage = () => {
             <p className="text-primary-foreground/70 mb-8 max-w-md mx-auto">
               Upload your resume, get instant analysis, and start building your path to placement success.
             </p>
-            <Button variant="accent" size="xl" onClick={() => navigate("/dashboard")}>
+            <Button variant="accent" size="xl" onClick={() => navigate("/auth")}>
               Start Now — It's Free
             </Button>
           </motion.div>

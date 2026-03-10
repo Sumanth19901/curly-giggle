@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Brain, Upload, BarChart3, BookOpen, MessageSquare, Target, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import ResumeUpload from "@/components/dashboard/ResumeUpload";
 import PlacementScore from "@/components/dashboard/PlacementScore";
 import SkillGapAnalysis from "@/components/dashboard/SkillGapAnalysis";
@@ -24,6 +26,12 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast.success("Logged out successfully");
+    navigate("/");
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -57,9 +65,9 @@ const Dashboard = () => {
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={() => navigate("/")}>
+          <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={handleLogout}>
             <LogOut className="w-4 h-4" />
-            Back to Home
+            Sign Out
           </Button>
         </div>
       </header>
@@ -71,11 +79,10 @@ const Dashboard = () => {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                activeTab === tab.key
-                  ? "bg-accent/10 text-accent"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.key
+                ? "bg-accent/10 text-accent"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -97,11 +104,10 @@ const Dashboard = () => {
                   setActiveTab(tab.key);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.key
-                    ? "bg-accent/10 text-accent"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                }`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.key
+                  ? "bg-accent/10 text-accent"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
