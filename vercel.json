@@ -1,0 +1,12 @@
+{
+  "buildCommand": "cd frent-end && npm run build",
+  "outputDirectory": "frent-end/dist",
+  "devCommand": "cd frent-end && npm run dev",
+  "installCommand": "cd frent-end && npm install",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

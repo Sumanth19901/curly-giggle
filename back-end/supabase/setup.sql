@@ -85,3 +85,19 @@ INSERT INTO public.job_roles (role_name, required_skills, description) VALUES
 ('Data Scientist', '["Python", "Machine Learning", "Deep Learning", "SQL", "Pandas", "TensorFlow", "Statistics"]', 'Data analysis and ML modeling'),
 ('Backend Developer', '["Django", "REST APIs", "SQL", "Docker", "Redis", "CI/CD", "Git"]', 'Server-side logic and database architecture')
 ON CONFLICT (role_name) DO NOTHING;
+
+-- TRIGGER: Automatically create a profile when a user signs up
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, email)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.email);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Drop trigger if exists and recreate
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
