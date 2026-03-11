@@ -24,7 +24,7 @@ Welcome to **ACIA**, an intelligent and autonomous career advisor built to evalu
 The project is split cleanly into a `frent-end` UI app and a Node.js `back-end` API. 
 
 ```bash
-📦 lovable-ui-builder
+📦 ACIA
  ┣ 📂 back-end             # Node.js + Express API Backend Server
  ┃ ┣ 📜 server.js          # Core Express application and Nodemailer routes
  ┃ ┗ 📜 .env               # Backend environment variables
