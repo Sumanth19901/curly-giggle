@@ -3,10 +3,11 @@
   "outputDirectory": "frent-end/dist",
   "devCommand": "cd frent-end && npm run dev",
   "installCommand": "cd frent-end && npm install",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/frent-end/dist/index.html"
     }
   ]
 }
