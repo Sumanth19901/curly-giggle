@@ -11,6 +11,7 @@ import SkillGapAnalysis from "@/components/dashboard/SkillGapAnalysis";
 import LearningRoadmap from "@/components/dashboard/LearningRoadmap";
 import InterviewPrep from "@/components/dashboard/InterviewPrep";
 import ProfileOverview from "@/components/dashboard/ProfileOverview";
+import { ModeToggle } from "@/components/mode-toggle";
 
 type TabKey = "overview" | "resume" | "skills" | "roadmap" | "interview";
 
@@ -59,16 +60,19 @@ const Dashboard = () => {
             </div>
             <span className="font-bold text-foreground">ACIA</span>
           </div>
-          <button
-            className="lg:hidden text-muted-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-          <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={handleLogout}>
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <ModeToggle />
+            <button
+              className="lg:hidden text-muted-foreground ml-2"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <Button variant="ghost" size="sm" className="hidden lg:flex" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 

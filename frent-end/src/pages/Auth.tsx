@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const Auth = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -82,13 +83,16 @@ const Auth = () => {
                 transition={{ duration: 0.5 }}
                 className="w-full max-w-md"
             >
-                <button
-                    onClick={() => navigate("/")}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8 group"
-                >
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-                    Back to Home
-                </button>
+                <div className="flex justify-between items-center mb-8">
+                    <button
+                        onClick={() => navigate("/")}
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                    >
+                        <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                        Back to Home
+                    </button>
+                    <ModeToggle />
+                </div>
 
                 <div className="bg-card shadow-card rounded-2xl border border-border/50 p-8">
                     <div className="text-center mb-8">

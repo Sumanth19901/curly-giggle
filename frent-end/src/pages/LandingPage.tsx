@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Brain, FileSearch, Target, BookOpen, MessageSquare, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const features = [
   {
@@ -64,6 +65,7 @@ const LandingPage = () => {
             <span className="font-bold text-lg text-foreground">ACIA</span>
           </div>
           <div className="flex items-center gap-3">
+            <ModeToggle />
             <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
               Dashboard
             </Button>
