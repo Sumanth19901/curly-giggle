@@ -29,6 +29,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    localStorage.removeItem("token");
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/");

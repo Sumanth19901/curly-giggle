@@ -1,7 +1,26 @@
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { placementApi } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 const PlacementScore = () => {
-  const score = 78;
+  const { data, isLoading } = useQuery({
+    queryKey: ['placement-score'],
+    queryFn: () => placementApi.predict().then(res => res.data),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-6 bg-card border border-border/50 rounded-xl min-h-[160px]">
+        <Loader2 className="w-8 h-8 text-accent animate-spin" />
+      </div>
+    );
+  }
+
+  const prediction = data?.prediction;
+  const score = prediction?.readiness_score || 0;
+  const companies = prediction?.predicted_companies || [];
+  
   const circumference = 2 * Math.PI * 54;
   const offset = circumference - (score / 100) * circumference;
 
@@ -36,19 +55,17 @@ const PlacementScore = () => {
         <div className="flex-1 text-center sm:text-left">
           <h3 className="text-lg font-semibold text-foreground mb-1">Placement Readiness</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Based on your skills, experience, and academic profile, you have a <strong className="text-accent">high</strong> chance of placement.
+            Based on your skills and resume, you are <strong className="text-accent">{score > 70 ? 'Highly Ready' : 'Improving'}</strong>.
           </p>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: "Technical", value: "82%" },
-              { label: "Soft Skills", value: "70%" },
-              { label: "Projects", value: "85%" },
-            ].map((item) => (
-              <div key={item.label}>
-                <div className="text-lg font-bold text-foreground">{item.value}</div>
-                <div className="text-xs text-muted-foreground">{item.label}</div>
-              </div>
-            ))}
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-muted-foreground uppercase">Target Companies</div>
+            <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+              {companies.map((company: any) => (
+                <span key={company.name} className="px-2 py-1 bg-secondary rounded text-[10px] font-medium text-foreground">
+                  {company.name} ({company.probability})
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -57,3 +74,4 @@ const PlacementScore = () => {
 };
 
 export default PlacementScore;
+

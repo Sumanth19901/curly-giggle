@@ -1,23 +1,64 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Upload, FileText, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useMutation } from "@tanstack/react-query";
+import { resumeApi } from "@/lib/api";
+import { toast } from "sonner";
 
 const ResumeUpload = () => {
   const [uploaded, setUploaded] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
 
-  const handleUpload = () => {
-    setUploaded(true);
+  const uploadMutation = useMutation({
+    mutationFn: (formData: FormData) => resumeApi.upload(formData),
+    onSuccess: (data) => {
+      toast.success("Resume uploaded successfully!");
+      analyzeMutation.mutate(data.data.resume.id);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to upload resume");
+    }
+  });
+
+  const analyzeMutation = useMutation({
+    mutationFn: (resumeId: string) => resumeApi.analyze(resumeId),
+    onSuccess: (data) => {
+      setAnalysisData(data.data.analysis);
+      setUploaded(true);
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error || "Failed to analyze resume");
+    }
+  });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const formData = new FormData();
+      formData.append("resume", e.target.files[0]);
+      uploadMutation.mutate(formData);
+    }
   };
 
-  const skills = ["Python", "React.js", "Machine Learning", "Django", "SQL", "Git", "REST APIs", "NLP"];
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const formData = new FormData();
+      formData.append("resume", e.dataTransfer.files[0]);
+      uploadMutation.mutate(formData);
+    }
+  };
+
+  const skills = analysisData?.extracted_skills || [];
   const details = [
-    { label: "Name", value: "K. Sumanth" },
-    { label: "Education", value: "B.Tech CSE, Krishna University" },
-    { label: "CGPA", value: "8.5" },
-    { label: "Projects", value: "3 listed" },
+    { label: "Analysis Score", value: analysisData?.score || "N/A" },
+    { label: "Strengths", value: analysisData?.strengths?.join(", ") || "N/A" },
+    { label: "Weaknesses", value: analysisData?.weaknesses?.join(", ") || "N/A" },
   ];
+
+  const isLoading = uploadMutation.isPending || analyzeMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -30,7 +71,7 @@ const ResumeUpload = () => {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer ${
+          className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer relative ${
             dragging ? "border-accent bg-accent/5" : "border-border hover:border-accent/50"
           }`}
           onDragOver={(e) => {
@@ -38,19 +79,32 @@ const ResumeUpload = () => {
             setDragging(true);
           }}
           onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            handleUpload();
-          }}
-          onClick={handleUpload}
+          onDrop={handleDrop}
+          onClick={() => document.getElementById("resume-input")?.click()}
         >
-          <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
-          <p className="text-foreground font-medium mb-1">Drag & drop your resume here</p>
-          <p className="text-sm text-muted-foreground mb-4">Supports PDF, DOCX (Max 10MB)</p>
-          <Button variant="accent" size="sm">
-            Browse Files
-          </Button>
+          {isLoading ? (
+            <div className="flex flex-col items-center">
+              <Loader2 className="w-10 h-10 text-accent animate-spin mb-4" />
+              <p className="text-foreground font-medium">Analyzing your resume...</p>
+            </div>
+          ) : (
+            <>
+              <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
+              <p className="text-foreground font-medium mb-1">Drag & drop your resume here</p>
+              <p className="text-sm text-muted-foreground mb-4">Supports PDF, DOCX (Max 10MB)</p>
+              <Button variant="accent" size="sm" type="button">
+                Browse Files
+              </Button>
+            </>
+          )}
+          <input
+            id="resume-input"
+            type="file"
+            className="hidden"
+            accept=".pdf,.docx"
+            onChange={handleFileChange}
+            disabled={isLoading}
+          />
         </motion.div>
       ) : (
         <motion.div
@@ -58,27 +112,24 @@ const ResumeUpload = () => {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
-          {/* Upload success */}
           <div className="flex items-center gap-3 p-4 rounded-xl bg-accent/10 border border-accent/20">
             <CheckCircle2 className="w-5 h-5 text-accent" />
             <div>
-              <p className="font-medium text-foreground text-sm">Resume uploaded successfully!</p>
-              <p className="text-xs text-muted-foreground">resume_sumanth.pdf · 245 KB</p>
+              <p className="font-medium text-foreground text-sm">Resume analyzed successfully!</p>
             </div>
           </div>
 
-          {/* Extracted Info */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="p-6 rounded-xl bg-card shadow-card border border-border/50">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="w-4 h-4 text-accent" />
-                <h3 className="font-semibold text-foreground">Extracted Details</h3>
+                <h3 className="font-semibold text-foreground">Analysis Summary</h3>
               </div>
               <div className="space-y-3">
                 {details.map((d) => (
-                  <div key={d.label} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">{d.label}</span>
-                    <span className="font-medium text-foreground">{d.value}</span>
+                  <div key={d.label} className="flex flex-col space-y-1">
+                    <span className="text-xs text-muted-foreground font-semibold uppercase">{d.label}</span>
+                    <span className="text-sm text-foreground">{d.value}</span>
                   </div>
                 ))}
               </div>
@@ -87,7 +138,7 @@ const ResumeUpload = () => {
             <div className="p-6 rounded-xl bg-card shadow-card border border-border/50">
               <h3 className="font-semibold text-foreground mb-4">Extracted Skills</h3>
               <div className="flex flex-wrap gap-2">
-                {skills.map((skill, i) => (
+                {skills.map((skill: string, i: number) => (
                   <motion.span
                     key={skill}
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -112,3 +163,4 @@ const ResumeUpload = () => {
 };
 
 export default ResumeUpload;
+

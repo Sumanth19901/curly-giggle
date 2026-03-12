@@ -1,56 +1,27 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, ChevronDown, ChevronUp, Lightbulb } from "lucide-react";
-
-const interviewData = [
-  {
-    category: "Technical",
-    questions: [
-      {
-        q: "Explain the difference between REST and GraphQL APIs.",
-        tip: "Focus on data fetching flexibility, over-fetching, and use cases for each.",
-      },
-      {
-        q: "What is the time complexity of common sorting algorithms?",
-        tip: "Compare Quick Sort (O(n log n) avg), Merge Sort (O(n log n)), and Bubble Sort (O(n²)).",
-      },
-      {
-        q: "How does React's virtual DOM work?",
-        tip: "Explain reconciliation, diffing algorithm, and why it improves performance.",
-      },
-    ],
-  },
-  {
-    category: "Behavioral",
-    questions: [
-      {
-        q: "Tell me about a challenging project you worked on.",
-        tip: "Use the STAR method: Situation, Task, Action, Result.",
-      },
-      {
-        q: "How do you handle tight deadlines?",
-        tip: "Mention prioritization, communication with team, and examples of delivery.",
-      },
-    ],
-  },
-  {
-    category: "System Design",
-    questions: [
-      {
-        q: "Design a URL shortener like bit.ly.",
-        tip: "Cover hashing, database schema, caching layer, and scaling considerations.",
-      },
-      {
-        q: "How would you design a real-time chat application?",
-        tip: "Discuss WebSockets, message queues, data storage, and scaling strategies.",
-      },
-    ],
-  },
-];
+import { MessageSquare, ChevronDown, ChevronUp, Lightbulb, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { interviewApi } from "@/lib/api";
 
 const InterviewPrep = () => {
-  const [expandedCat, setExpandedCat] = useState<string | null>("Technical");
-  const [expandedQ, setExpandedQ] = useState<string | null>(null);
+  const [expandedQ, setExpandedQ] = useState<number | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['interview-questions'],
+    queryFn: () => interviewApi.getQuestions('Software Engineer').then(res => res.data),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12">
+        <Loader2 className="w-10 h-10 text-accent animate-spin mb-4" />
+        <p className="text-muted-foreground">Curating interview questions for you...</p>
+      </div>
+    );
+  }
+
+  const questions = data?.questions || [];
 
   return (
     <div className="space-y-6">
@@ -60,81 +31,61 @@ const InterviewPrep = () => {
       </div>
 
       <div className="space-y-4">
-        {interviewData.map((cat, catIdx) => (
-          <motion.div
-            key={cat.category}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: catIdx * 0.08 }}
-            className="rounded-xl bg-card shadow-card border border-border/50 overflow-hidden"
-          >
-            <button
-              onClick={() => setExpandedCat(expandedCat === cat.category ? null : cat.category)}
-              className="w-full flex items-center justify-between p-5 hover:bg-secondary/30 transition-colors"
+        {questions.length > 0 ? (
+          questions.map((question: any, idx: number) => (
+            <motion.div
+              key={question.id}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.08 }}
+              className="rounded-xl bg-card shadow-card border border-border/50 overflow-hidden"
             >
-              <div className="flex items-center gap-2.5">
-                <MessageSquare className="w-4 h-4 text-accent" />
-                <span className="font-semibold text-foreground">{cat.category}</span>
-                <span className="text-xs text-muted-foreground">({cat.questions.length} questions)</span>
-              </div>
-              {expandedCat === cat.category ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-
-            <AnimatePresence>
-              {expandedCat === cat.category && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="overflow-hidden"
+              <div className="p-5">
+                <button
+                  onClick={() => setExpandedQ(expandedQ === question.id ? null : question.id)}
+                  className="w-full text-left flex items-start justify-between gap-3"
                 >
-                  <div className="px-5 pb-5 space-y-3">
-                    {cat.questions.map((question) => {
-                      const qKey = `${cat.category}-${question.q}`;
-                      return (
-                        <div
-                          key={qKey}
-                          className="p-4 rounded-lg bg-secondary/30 border border-border/30"
-                        >
-                          <button
-                            onClick={() => setExpandedQ(expandedQ === qKey ? null : qKey)}
-                            className="w-full text-left flex items-start justify-between gap-3"
-                          >
-                            <span className="text-sm font-medium text-foreground">{question.q}</span>
-                            <Lightbulb className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-colors ${expandedQ === qKey ? "text-accent" : "text-muted-foreground"}`} />
-                          </button>
-                          <AnimatePresence>
-                            {expandedQ === qKey && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="mt-3 pt-3 border-t border-border/30 flex items-start gap-2">
-                                  <Lightbulb className="w-3.5 h-3.5 text-accent mt-0.5 flex-shrink-0" />
-                                  <p className="text-xs text-muted-foreground leading-relaxed">{question.tip}</p>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      );
-                    })}
+                  <div className="flex gap-3">
+                    <span className="text-sm font-bold text-accent">Q{idx + 1}</span>
+                    <span className="text-sm font-medium text-foreground">{question.text}</span>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        ))}
+                  <ChevronDown className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-transform ${expandedQ === question.id ? "rotate-180" : ""}`} />
+                </button>
+                
+                <AnimatePresence>
+                  {expandedQ === question.id && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-4 pt-4 border-t border-border/30">
+                        <textarea 
+                          className="w-full min-h-[100px] p-3 rounded-lg bg-secondary/30 border border-border/30 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                          placeholder="Type your answer here for evaluation..."
+                        />
+                        <div className="flex justify-end mt-2">
+                          <button className="text-xs bg-accent text-accent-foreground px-3 py-1.5 rounded-md hover:bg-accent/90 transition-colors">
+                            Submit Answer
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="text-center p-12 text-muted-foreground">
+            No questions available for this role.
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default InterviewPrep;
+

@@ -1,13 +1,26 @@
 {
-  "buildCommand": "cd frent-end && npm run build",
-  "outputDirectory": "frent-end/dist",
-  "devCommand": "cd frent-end && npm run dev",
-  "installCommand": "cd frent-end && npm install",
-  "framework": "vite",
+  "version": 2,
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/back-end/server.js"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/frent-end/dist/index.html"
+      "destination": "/frent-end/dist/$1"
+    }
+  ],
+  "builds": [
+    {
+      "src": "/back-end/server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "/frent-end/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
   ]
 }

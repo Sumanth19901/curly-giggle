@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Brain, ArrowLeft, Mail, Lock, User, Loader2, Eye, EyeOff } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Brain, ArrowLeft, Mail, Lock, User, Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ModeToggle } from "@/components/mode-toggle";
+import { authApi } from "@/lib/api";
 
 const Auth = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -17,16 +18,38 @@ const Auth = () => {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [fullName, setFullName] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [showOtp, setShowOtp] = useState(false);
+    const [otp, setOtp] = useState("");
+    const [otpSent, setOtpSent] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Check if user is already logged in
         const checkUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session) navigate("/dashboard");
+            if (session) {
+                localStorage.setItem('token', session.access_token);
+                navigate("/dashboard");
+            }
         };
         checkUser();
     }, [navigate]);
+
+    const handleSendOtp = async () => {
+        if (!email) {
+            toast.error("Please enter your email first");
+            return;
+        }
+        setLoading(true);
+        try {
+            await authApi.sendOtp(email);
+            setOtpSent(true);
+            toast.success("OTP sent to your email!");
+        } catch (error: any) {
+            toast.error(error.response?.data?.error || "Failed to send OTP");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -40,11 +63,33 @@ const Auth = () => {
 
         try {
             if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({
+                // Try backend login first to support demo admin
+                try {
+                    const response = await authApi.login({ email, password });
+                    const { token, user } = response.data;
+                    
+                    if (token) {
+                        localStorage.setItem('token', token);
+                        // We also need to set the session for supabase if possible
+                        // But since we are using a custom backend, we'll just navigate
+                        toast.success("Welcome back, Demo Admin!");
+                        navigate("/dashboard");
+                        return;
+                    }
+                } catch (apiError: any) {
+                    console.log("Normal auth flow failed, trying supabase...");
+                }
+
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
                 if (error) throw error;
+                
+                if (data.session) {
+                    localStorage.setItem('token', data.session.access_token);
+                }
+                
                 toast.success("Welcome back!");
                 navigate("/dashboard");
             } else {
@@ -58,12 +103,11 @@ const Auth = () => {
                     },
                 });
                 if (error) throw error;
-                toast.success("Account created! You can now log in.");
+                toast.success("Account created! Please verify your email.");
                 setIsLogin(true);
             }
-        } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : "An error occurred";
-            toast.error(errorMessage);
+        } catch (error: any) {
+            toast.error(error.message || "An error occurred");
         } finally {
             setLoading(false);
         }
@@ -71,7 +115,6 @@ const Auth = () => {
 
     return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {/* Decorative background gradients */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
                 <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px]" />
                 <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-accent/5 rounded-full blur-[120px]" />
@@ -100,116 +143,218 @@ const Auth = () => {
                             <Brain className="w-7 h-7 text-accent-foreground" />
                         </div>
                         <h1 className="text-2xl font-bold text-foreground">
-                            {isLogin ? "Welcome Back" : "Create Account"}
+                            {showOtp ? "Verify OTP" : isLogin ? "Welcome Back" : "Create Account"}
                         </h1>
                         <p className="text-sm text-muted-foreground mt-2">
-                            {isLogin
-                                ? "Enter your credentials to access your dashboard"
-                                : "Join ACIA and accelerate your career journey"}
+                            {showOtp 
+                                ? "Enter the 6-digit code sent to your email" 
+                                : isLogin
+                                    ? "Enter your credentials to access your dashboard"
+                                    : "Join ACIA and accelerate your career journey"}
                         </p>
                     </div>
 
-                    <form onSubmit={handleAuth} className="space-y-4">
-                        {!isLogin && (
-                            <div className="space-y-2">
-                                <Label htmlFor="fullName">Full Name</Label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <Input
-                                        id="fullName"
-                                        type="text"
-                                        placeholder="John Doe"
-                                        className="pl-10"
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="space-y-2">
-                            <Label htmlFor="email">Email Address</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="name@university.edu"
-                                    className="pl-10"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
-                                {isLogin && (
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            toast.info("Password reset functionality coming soon!")
-                                        }
-                                        className="text-xs text-accent hover:underline focus:outline-none"
-                                    >
-                                        Forgot password?
-                                    </button>
+                    <AnimatePresence mode="wait">
+                        {!showOtp ? (
+                            <motion.form 
+                                key="auth-form"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20 }}
+                                onSubmit={handleAuth} 
+                                className="space-y-4"
+                            >
+                                {!isLogin && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="fullName">Full Name</Label>
+                                        <div className="relative">
+                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                id="fullName"
+                                                type="text"
+                                                placeholder="John Doe"
+                                                className="pl-10"
+                                                value={fullName}
+                                                onChange={(e) => setFullName(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
                                 )}
-                            </div>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                <Input
-                                    id="password"
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    className="pl-10 pr-10"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
 
-                        {!isLogin && (
-                            <div className="space-y-2">
-                                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                                <div className="relative">
-                                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <div className="space-y-2">
+                                    <Label htmlFor="email">Email Address</Label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            placeholder="name@university.edu"
+                                            className="pl-10"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor="password">Password</Label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowOtp(true)}
+                                            className="text-xs text-accent hover:underline focus:outline-none"
+                                        >
+                                            Login with OTP instead?
+                                        </button>
+                                    </div>
+                                    <div className="relative">
+                                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <Input
+                                            id="password"
+                                            type={showPassword ? "text" : "password"}
+                                            placeholder="••••••••"
+                                            className="pl-10 pr-10"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus:outline-none"
+                                        >
+                                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {!isLogin && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="confirmPassword">Confirm Password</Label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                            <Input
+                                                id="confirmPassword"
+                                                type={showPassword ? "text" : "password"}
+                                                placeholder="••••••••"
+                                                className="pl-10 pr-10"
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <Button type="submit" className="w-full mt-2" size="lg" disabled={loading}>
+                                    {loading ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : isLogin ? (
+                                        "Log In"
+                                    ) : (
+                                        "Register"
+                                    )}
+                                </Button>
+                            </motion.form>
+                        ) : (
+                            <motion.div 
+                                key="otp-form"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                className="space-y-4"
+                            >
+                                <div className="space-y-2">
+                                    <Label htmlFor="otp-email">Email Address</Label>
                                     <Input
-                                        id="confirmPassword"
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="••••••••"
-                                        className="pl-10 pr-10"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        required
+                                        id="otp-email"
+                                        type="email"
+                                        placeholder="name@university.edu"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        disabled={otpSent}
                                     />
                                 </div>
-                            </div>
+                                
+                                {otpSent && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="otp">Enter OTP</Label>
+                                        <Input
+                                            id="otp"
+                                            type="text"
+                                            placeholder="123456"
+                                            maxLength={6}
+                                            className="text-center tracking-[1em] font-bold text-lg"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value)}
+                                        />
+                                    </div>
+                                )}
+
+                                <Button 
+                                    onClick={otpSent ? async () => {
+                                        setLoading(true);
+                                        try {
+                                            await authApi.verifyOtp(email, otp);
+                                            toast.success("OTP Verified!");
+                                            // In a real app, verify-otp would return a session token
+                                            setShowOtp(false);
+                                        } catch (e: any) {
+                                            toast.error(e.response?.data?.error || "Invalid OTP");
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    } : handleSendOtp} 
+                                    className="w-full" 
+                                    size="lg" 
+                                    disabled={loading}
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : otpSent ? "Verify OTP" : "Send OTP"}
+                                </Button>
+                                
+                                <Button variant="ghost" className="w-full" onClick={() => { setShowOtp(false); setOtpSent(false); }}>
+                                    Back to Login
+                                </Button>
+                            </motion.div>
                         )}
+                    </AnimatePresence>
 
-                        <Button type="submit" className="w-full mt-2" size="lg" disabled={loading}>
-                            {loading ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : isLogin ? (
-                                "Log In"
-                            ) : (
-                                "Register"
-                            )}
-                        </Button>
-                    </form>
+                    <div className="mt-8 pt-6 border-t text-center space-y-4">
+                        <div className="bg-accent/5 rounded-xl p-4 border border-accent/10">
+                            <p className="text-xs text-muted-foreground mb-2">Want to explore the platform quickly?</p>
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="w-full border-accent/20 hover:bg-accent/10 text-accent font-medium transition-all duration-300"
+                                onClick={async () => {
+                                    const demoEmail = "kasisumanth8@gmail.com";
+                                    const demoPass = "admin_password_2026";
+                                    setEmail(demoEmail);
+                                    setPassword(demoPass);
+                                    
+                                    // Trigger login immediately with these values
+                                    setLoading(true);
+                                    try {
+                                        const response = await authApi.login({ email: demoEmail, password: demoPass });
+                                        if (response.data.token) {
+                                            localStorage.setItem('token', response.data.token);
+                                            toast.success("Welcome back, Demo Admin!");
+                                            navigate("/dashboard");
+                                        }
+                                    } catch (e) {
+                                        toast.error("Demo login failed. Is the backend running?");
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                }}
+                            >
+                                <ShieldCheck className="w-4 h-4 mr-2" />
+                                Instant Demo Access
+                            </Button>
+                        </div>
 
-                    <div className="mt-8 pt-6 border-t text-center">
                         <p className="text-sm text-muted-foreground">
                             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                             <button
@@ -231,3 +376,4 @@ const Auth = () => {
 };
 
 export default Auth;
+

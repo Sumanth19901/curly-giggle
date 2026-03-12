@@ -31,6 +31,8 @@ const App = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const isAuthenticated = !!session || !!localStorage.getItem('token');
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <QueryClientProvider client={queryClient}>
@@ -43,7 +45,7 @@ const App = () => {
               <Route path="/auth" element={<Auth />} />
               <Route
                 path="/dashboard"
-                element={session ? <Dashboard /> : <Navigate to="/auth" />}
+                element={isAuthenticated ? <Dashboard /> : <Navigate to="/auth" />}
               />
               <Route path="*" element={<NotFound />} />
             </Routes>
